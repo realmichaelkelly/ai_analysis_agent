@@ -1,7 +1,3 @@
-# === INSTALL PACKAGES ===
-!pip install facebook_business openai
-!pip install streamlit
-
 # === IMPORTS ===
 import streamlit as st
 import time
