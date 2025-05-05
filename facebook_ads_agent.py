@@ -1,6 +1,6 @@
-# === IMPORTS ===
 import streamlit as st
 import time
+import openai
 from facebook_business.api import FacebookAdsApi
 from facebook_business.adobjects.user import User
 from facebook_business.adobjects.adaccount import AdAccount
@@ -8,18 +8,18 @@ from facebook_business.adobjects.campaign import Campaign
 from facebook_business.adobjects.adset import AdSet
 from facebook_business.adobjects.ad import Ad
 from facebook_business.adobjects.adpreview import AdPreview
-import openai
 
-# === SECRETS (replace with Streamlit secrets later) ===
-ACCESS_TOKEN = 'EAAPLfuMFEEcBO55HO7ZBMEG5MGBXrxZCe3DeOZCvY6bkffULoe0NzYRl4Q6YoKl6rZA6ZAwfZB8u6q2Npgbu3Te64CogaRzIQ90wt1RunyVJ8rJ7oIC9T70gzMN5EQ2PnpI1hsEa1Ut9YJJjODNBqAPuGSXSKEeHCTfpGZAF25uqy0VDL2kPOWWZCc4YxY7N'
-APP_ID = '2528472164160851'
-openai.api_key = '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'
-ASSISTANT_ID = 'asst_ljKQ5ChpJOfNCrc6Qsw6hj6F'
+# === LOAD SECRETS ===
+ACCESS_TOKEN = st.secrets["ACCESS_TOKEN"]
+APP_ID = st.secrets["APP_ID"]
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+AGENT_ID = st.secrets["AGENT_ID"]
 
-# === INIT APIS ===
-FacebookAdsApi.init(access_token='EAAPLfuMFEEcBO55HO7ZBMEG5MGBXrxZCe3DeOZCvY6bkffULoe0NzYRl4Q6YoKl6rZA6ZAwfZB8u6q2Npgbu3Te64CogaRzIQ90wt1RunyVJ8rJ7oIC9T70gzMN5EQ2PnpI1hsEa1Ut9YJJjODNBqAPuGSXSKEeHCTfpGZAF25uqy0VDL2kPOWWZCc4YxY7N')
+# === INITIALIZE APIs ===
+FacebookAdsApi.init(access_token=ACCESS_TOKEN)
 
 # === FUNCTIONS ===
+
 def get_all_ads_from_recent_campaigns(account):
     ad_account = AdAccount(account['id'])
     campaigns = ad_account.get_campaigns(fields=['name', 'id', 'status'])
@@ -31,7 +31,7 @@ def get_all_ads_from_recent_campaigns(account):
         camp_name = campaign['name']
 
         try:
-            adsets = Campaign(camp_id).get_ad_sets(fields=['id', 'status'])
+            adsets = Campaign(camp_id).get_ad_sets(fields=['id', 'status', 'effective_status'])
             for adset in adsets:
                 ads = AdSet(adset['id']).get_ads(fields=['id', 'name', 'status'])
                 for ad in ads:
@@ -39,15 +39,14 @@ def get_all_ads_from_recent_campaigns(account):
                         'date_preset': 'last_7d',
                         'fields': 'spend'
                     })
-                    spend = float(insights[0].get('spend', 0)) if insights else 0
-                    if spend > 0 or ad['status'] == 'ACTIVE':
+                    if insights and float(insights[0].get('spend', 0)) > 0:
                         ads_data.append({
                             'ad_id': ad['id'],
                             'ad_name': ad['name'],
                             'campaign_name': camp_name
                         })
         except Exception as e:
-            st.warning(f"⚠️ Error fetching ads in {camp_name}: {e}")
+            st.warning(f"⚠️ Error fetching ads in {camp_name}:\n\n{e}")
             continue
 
     return ads_data
@@ -57,7 +56,7 @@ def get_ad_preview_html(ad_id):
         preview = Ad(ad_id).get_previews(params={'ad_format': 'DESKTOP_FEED_STANDARD'})
         return preview[0]['body'] if preview else None
     except Exception as e:
-        st.error(f"❌ Error loading preview for Ad ID {ad_id}: {e}")
+        st.warning(f"❌ Preview error for Ad ID {ad_id}: {e}")
         return None
 
 def analyze_with_agent(ad_name, preview_html):
@@ -75,7 +74,7 @@ def analyze_with_agent(ad_name, preview_html):
             assistant_id=AGENT_ID
         )
 
-        with st.spinner(f"Analyzing '{ad_name}'..."):
+        with st.spinner(f"Analyzing {ad_name}..."):
             while True:
                 run_status = openai.beta.threads.runs.retrieve(
                     thread_id=thread.id,
@@ -91,11 +90,10 @@ def analyze_with_agent(ad_name, preview_html):
         st.markdown(f"### 🧠 Analysis for: {ad_name}")
         st.markdown(response_text)
         st.divider()
-
     except Exception as e:
         st.error(f"❌ AI analysis error for '{ad_name}': {e}")
 
-# === UI ===
+# === STREAMLIT UI ===
 st.set_page_config(layout="wide")
 st.title("📊 Facebook Ad Intelligence Agent")
 
@@ -108,7 +106,7 @@ try:
         ads = get_all_ads_from_recent_campaigns(account)
 
         if not ads:
-            st.write("No ads spent money in the past 7 days.")
+            st.write("No qualifying ads found in the last 7 days.")
             continue
 
         for ad in ads:
@@ -118,4 +116,4 @@ try:
             else:
                 st.warning(f"⚠️ Skipping preview for {ad['ad_name']}")
 except Exception as e:
-    st.error(f"🚨 App Error: {e}")
+    st.error(f"❌ Error initializing or loading accounts: {e}")
