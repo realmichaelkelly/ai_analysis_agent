@@ -10,13 +10,13 @@ from facebook_business.adobjects.ad import Ad
 from facebook_business.adobjects.adpreview import AdPreview
 
 # === LOAD SECRETS ===
-ACCESS_TOKEN = st.secrets["ACCESS_TOKEN"]
-APP_ID = st.secrets["APP_ID"]
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-AGENT_ID = st.secrets["AGENT_ID"]
+ACCESS_TOKEN = 'EAAPLfuMFEEcBO55HO7ZBMEG5MGBXrxZCe3DeOZCvY6bkffULoe0NzYRl4Q6YoKl6rZA6ZAwfZB8u6q2Npgbu3Te64CogaRzIQ90wt1RunyVJ8rJ7oIC9T70gzMN5EQ2PnpI1hsEa1Ut9YJJjODNBqAPuGSXSKEeHCTfpGZAF25uqy0VDL2kPOWWZCc4YxY7N'
+APP_ID = '2528472164160851'
+openai.api_key = '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'
+ASSISTANT_ID = 'asst_ljKQ5ChpJOfNCrc6Qsw6hj6F'
 
 # === INITIALIZE APIs ===
-FacebookAdsApi.init(access_token=ACCESS_TOKEN)
+FacebookAdsApi.init(access_token='EAAPLfuMFEEcBO55HO7ZBMEG5MGBXrxZCe3DeOZCvY6bkffULoe0NzYRl4Q6YoKl6rZA6ZAwfZB8u6q2Npgbu3Te64CogaRzIQ90wt1RunyVJ8rJ7oIC9T70gzMN5EQ2PnpI1hsEa1Ut9YJJjODNBqAPuGSXSKEeHCTfpGZAF25uqy0VDL2kPOWWZCc4YxY7N')
 
 # === FUNCTIONS ===
 
